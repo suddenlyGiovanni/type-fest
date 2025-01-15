@@ -1,10 +1,11 @@
-import {expectError, expectType} from 'tsd';
+import {expectType} from 'tsd';
 import type {
 	IsLiteral,
 	IsStringLiteral,
 	IsNumericLiteral,
 	IsBooleanLiteral,
 	IsSymbolLiteral,
+	Tagged,
 } from '../index';
 
 const stringLiteral = '';
@@ -54,11 +55,19 @@ expectType<IsBooleanLiteral<typeof _boolean>>(false);
 expectType<IsSymbolLiteral<typeof symbolLiteral>>(true);
 expectType<IsSymbolLiteral<typeof _symbol>>(false);
 
-declare const anything: any;
-
 // Missing generic parameter
-expectError<IsLiteral>(anything);
-expectError<IsStringLiteral>(anything);
-expectError<IsNumericLiteral>(anything);
-expectError<IsBooleanLiteral>(anything);
-expectError<IsSymbolLiteral>(anything);
+// @ts-expect-error
+type A0 = IsLiteral;
+// @ts-expect-error
+type A1 = IsStringLiteral;
+// @ts-expect-error
+type A2 = IsNumericLiteral;
+// @ts-expect-error
+type A3 = IsBooleanLiteral;
+// @ts-expect-error
+type A4 = IsSymbolLiteral;
+
+// Tagged types should be false
+expectType<IsStringLiteral<Tagged<string, 'Tag'>>>(false);
+expectType<IsNumericLiteral<Tagged<number, 'Tag'>>>(false);
+expectType<IsBooleanLiteral<Tagged<boolean, 'Tag'>>>(false);

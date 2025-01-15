@@ -1,7 +1,7 @@
 import type {BuiltIns} from './internal';
 
 /**
-@see PartialDeep
+@see {@link PartialDeep}
 */
 export type PartialDeepOptions = {
 	/**
@@ -10,6 +10,32 @@ export type PartialDeepOptions = {
 	@default false
 	*/
 	readonly recurseIntoArrays?: boolean;
+
+	/**
+	Allows `undefined` values in non-tuple arrays.
+
+	- When set to `true`, elements of non-tuple arrays can be `undefined`.
+	- When set to `false`, only explicitly defined elements are allowed in non-tuple arrays, ensuring stricter type checking.
+
+	@default true
+
+	@example
+	You can prevent `undefined` values in non-tuple arrays by passing `{recurseIntoArrays: true; allowUndefinedInNonTupleArrays: false}` as the second type argument:
+
+	```
+	import type {PartialDeep} from 'type-fest';
+
+	type Settings = {
+		languages: string[];
+	};
+
+	declare const partialSettings: PartialDeep<Settings, {recurseIntoArrays: true; allowUndefinedInNonTupleArrays: false}>;
+
+	partialSettings.languages = [undefined]; // Error
+	partialSettings.languages = []; // Ok
+	```
+	*/
+	readonly allowUndefinedInNonTupleArrays?: boolean;
 };
 
 /**
@@ -25,12 +51,12 @@ import type {PartialDeep} from 'type-fest';
 
 const settings: Settings = {
 	textEditor: {
-		fontSize: 14;
-		fontColor: '#000000';
-		fontWeight: 400;
-	}
-	autocomplete: false;
-	autosave: true;
+		fontSize: 14,
+		fontColor: '#000000',
+		fontWeight: 400
+	},
+	autocomplete: false,
+	autosave: true
 };
 
 const applySavedSettings = (savedSettings: PartialDeep<Settings>) => {
@@ -45,7 +71,7 @@ By default, this does not affect elements in array and tuple types. You can chan
 ```
 import type {PartialDeep} from 'type-fest';
 
-interface Settings {
+type Settings = {
 	languages: string[];
 }
 
@@ -54,12 +80,14 @@ const partialSettings: PartialDeep<Settings, {recurseIntoArrays: true}> = {
 };
 ```
 
+@see {@link PartialDeepOptions}
+
 @category Object
 @category Array
 @category Set
 @category Map
 */
-export type PartialDeep<T, Options extends PartialDeepOptions = {}> = T extends BuiltIns
+export type PartialDeep<T, Options extends PartialDeepOptions = {}> = T extends BuiltIns | (((...arguments_: any[]) => unknown)) | (new (...arguments_: any[]) => unknown)
 	? T
 	: T extends Map<infer KeyType, infer ValueType>
 		? PartialMapDeep<KeyType, ValueType, Options>
@@ -69,19 +97,17 @@ export type PartialDeep<T, Options extends PartialDeepOptions = {}> = T extends 
 				? PartialReadonlyMapDeep<KeyType, ValueType, Options>
 				: T extends ReadonlySet<infer ItemType>
 					? PartialReadonlySetDeep<ItemType, Options>
-					: T extends ((...arguments_: any[]) => unknown)
-						? T | undefined
-						: T extends object
-							? T extends ReadonlyArray<infer ItemType> // Test for arrays/tuples, per https://github.com/microsoft/TypeScript/issues/35156
-								? Options['recurseIntoArrays'] extends true
-									? ItemType[] extends T // Test for arrays (non-tuples) specifically
-										? readonly ItemType[] extends T // Differentiate readonly and mutable arrays
-											? ReadonlyArray<PartialDeep<ItemType | undefined, Options>>
-											: Array<PartialDeep<ItemType | undefined, Options>>
-										: PartialObjectDeep<T, Options> // Tuples behave properly
-									: T // If they don't opt into array testing, just use the original type
-								: PartialObjectDeep<T, Options>
-							: unknown;
+					: T extends object
+						? T extends ReadonlyArray<infer ItemType> // Test for arrays/tuples, per https://github.com/microsoft/TypeScript/issues/35156
+							? Options['recurseIntoArrays'] extends true
+								? ItemType[] extends T // Test for arrays (non-tuples) specifically
+									? readonly ItemType[] extends T // Differentiate readonly and mutable arrays
+										? ReadonlyArray<PartialDeep<Options['allowUndefinedInNonTupleArrays'] extends false ? ItemType : ItemType | undefined, Options>>
+										: Array<PartialDeep<Options['allowUndefinedInNonTupleArrays'] extends false ? ItemType : ItemType | undefined, Options>>
+									: PartialObjectDeep<T, Options> // Tuples behave properly
+								: T // If they don't opt into array testing, just use the original type
+							: PartialObjectDeep<T, Options>
+						: unknown;
 
 /**
 Same as `PartialDeep`, but accepts only `Map`s and as inputs. Internal helper for `PartialDeep`.

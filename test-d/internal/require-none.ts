@@ -1,5 +1,5 @@
-import {expectAssignable, expectNotAssignable, expectType} from 'tsd';
-import {type RequireNone} from '../../source/internal';
+import {expectAssignable, expectNotAssignable} from 'tsd';
+import type {RequireNone} from '../../source/internal';
 
 type NoneAllowed = RequireNone<'foo' | 'bar'>;
 

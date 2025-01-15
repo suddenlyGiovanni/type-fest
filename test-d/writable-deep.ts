@@ -1,6 +1,7 @@
-import {expectType, expectError, expectAssignable} from 'tsd';
-import type {ReadonlyDeep, Writable, WritableDeep} from '../index';
+import {expectType, expectAssignable} from 'tsd';
+import type {JsonValue, Opaque, ReadonlyDeep, WritableDeep} from '../index';
 import type {WritableObjectDeep} from '../source/writable-deep';
+import type {tag} from '../source/tagged';
 
 type Overloaded = {
 	(foo: number): string;
@@ -15,6 +16,17 @@ type Namespace = {
 type NamespaceWithOverload = Overloaded & {
 	readonly baz: readonly boolean[];
 };
+
+type OpaqueObjectData = {readonly a: number[]} | {readonly b: string};
+type OpaqueObject = Opaque<OpaqueObjectData, {readonly token: unknown}>;
+
+type ReadonlyJsonValue =
+  | {readonly [k: string]: ReadonlyJsonValue}
+  | readonly ReadonlyJsonValue[]
+  | number
+  | string
+  | boolean
+  | null;
 
 const data = {
 	object: {
@@ -35,17 +47,25 @@ const data = {
 	map: new Map<string, string>(),
 	set: new Set<string>(),
 	array: ['foo'],
+	emptyTuple: [] as [],
 	tuple: ['foo'] as ['foo'],
+	multiItemTuple: [{a: ''}, {b: 1}] as [{a: string}, {b: number}],
+	spreadTuple: ['foo'] as [...string[]],
+	trailingSpreadTuple: ['foo', 1] as [string, ...number[]],
+	leadingSpreadTuple: ['foo', 1] as [...string[], number],
 	readonlyMap: new Map<string, string>() as ReadonlyMap<string, string>,
 	readonlySet: new Set<string>() as ReadonlySet<string>,
 	readonlyArray: ['foo'] as readonly string[],
 	readonlyTuple: ['foo'] as const,
+	json: [{x: true}] as JsonValue,
+	opaqueObj: {a: [3]} as OpaqueObject, // eslint-disable-line @typescript-eslint/consistent-type-assertions
 };
 
-const readonlyData: Readonly<typeof data> = data;
+const readonlyData: ReadonlyDeep<typeof data> = data;
 
 let writableData: WritableDeep<typeof readonlyData>;
-expectError(writableData = readonlyData);
+// @ts-expect-error
+writableData = readonlyData; // eslint-disable-line prefer-const
 
 writableData.fn('foo');
 
@@ -63,14 +83,21 @@ expectType<null>(writableData.null);
 expectType<undefined>(writableData.undefined);
 expectType<Date>(writableData.date);
 expectType<RegExp>(writableData.regExp);
-expectType<Writable<Map<string, string>>>(writableData.map);
-expectType<Writable<Set<string>>>(writableData.set);
+expectType<Map<string, string>>(writableData.map);
+expectType<Set<string>>(writableData.set);
 expectType<string[]>(writableData.array);
+expectType<[]>(writableData.emptyTuple);
 expectType<['foo']>(writableData.tuple);
-expectType<Writable<Map<string, string>>>(writableData.readonlyMap);
-expectType<Writable<Set<string>>>(writableData.readonlySet);
+expectType<[{a: string}, {b: number}]>(writableData.multiItemTuple);
+expectType<[...string[]]>(writableData.spreadTuple);
+expectType<[string, ...number[]]>(writableData.trailingSpreadTuple);
+expectType<[...string[], number]>(writableData.leadingSpreadTuple);
+expectType<Map<string, string>>(writableData.readonlyMap);
+expectType<Set<string>>(writableData.readonlySet);
 expectType<string[]>(writableData.readonlyArray);
 expectType<['foo']>(writableData.readonlyTuple);
+expectAssignable<ReadonlyJsonValue>(writableData.json);
+expectAssignable<Opaque<WritableDeep<OpaqueObjectData>, WritableDeep<OpaqueObject[typeof tag]>>>(writableData.opaqueObj);
 
 expectType<((foo: number) => string) & WritableObjectDeep<Namespace>>(writableData.namespace);
 expectType<string>(writableData.namespace(1));
@@ -94,3 +121,18 @@ const fullyWritableData = {
 	},
 };
 expectAssignable<WritableDeep<ReadonlyDeep<typeof fullyWritableData>>>(fullyWritableData);
+
+// Standalone tests
+
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+const writableNamespace = {} as WritableDeep<{
+	(foo: number): string;
+	readonly baz: readonly boolean[];
+}>;
+expectType<((foo: number) => string) & {
+	baz: boolean[];
+}>(writableNamespace);
+expectAssignable<{
+	(foo: number): string;
+	baz: boolean[];
+}>(writableNamespace);
