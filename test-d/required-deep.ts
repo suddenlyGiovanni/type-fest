@@ -5,19 +5,19 @@ import type {RequiredDeep} from '../index';
 type Foo = {
 	baz?: string | undefined;
 	bar?: {
-		function?: ((...args: any[]) => void) | undefined;
-		functionFixedArity?: ((arg1: unknown, arg2: unknown) => void);
+		function?: ((...arguments_: any[]) => void) | undefined;
+		functionFixedArity?: ((argument1: unknown, argument2: unknown) => void);
 		functionWithOverload?: {
-			(arg: number): string;
-			(arg1: string, arg2: number): number;
+			(argument: number): string;
+			(argument1: string, argument2: number): number;
 		};
 		namespace?: {
-			(arg: number): string;
+			(argument: number): string;
 			key: string | undefined;
 		};
 		namespaceWithOverload: {
-			(arg: number): string;
-			(arg1: string, arg2: number): number;
+			(argument: number): string;
+			(argument1: string, argument2: number): number;
 			key: string | undefined;
 		};
 		object?: {key?: 'value'} | undefined;
@@ -46,19 +46,19 @@ type Foo = {
 type FooRequired = {
 	baz: string;
 	bar: {
-		function: (...args: any[]) => void;
-		functionFixedArity: (arg1: unknown, arg2: unknown) => void;
+		function: (...arguments_: any[]) => void;
+		functionFixedArity: (argument1: unknown, argument2: unknown) => void;
 		functionWithOverload: {
-			(arg: number): string;
-			(arg1: string, arg2: number): number;
+			(argument: number): string;
+			(argument1: string, argument2: number): number;
 		};
 		namespace: {
-			(arg: number): string;
+			(argument: number): string;
 			key: string;
 		};
 		namespaceWithOverload: {
-			(arg: number): string;
-			(arg1: string, arg2: number): number;
+			(argument: number): string;
+			(argument1: string, argument2: number): number;
 			key: string;
 		};
 		object: {key: 'value'};
@@ -87,6 +87,8 @@ type FooRequired = {
 type FooBar = Exclude<Foo['bar'], undefined>;
 type FooRequiredBar = FooRequired['bar'];
 
+// TODO: Fix this case: https://github.com/mmkal/expect-type/issues/34
+// @ts-expect-error
 expectTypeOf<RequiredDeep<Foo>>().toEqualTypeOf<FooRequired>();
 expectTypeOf<RequiredDeep<FooBar['function']>>().toEqualTypeOf<FooRequiredBar['function']>();
 expectTypeOf<RequiredDeep<FooBar['functionFixedArity']>>().toEqualTypeOf<FooRequiredBar['functionFixedArity']>();
@@ -107,7 +109,11 @@ expectTypeOf<RequiredDeep<FooBar['readonlyTuple']>>().toEqualTypeOf<FooRequiredB
 expectTypeOf<RequiredDeep<FooBar['weakMap']>>().toEqualTypeOf<FooRequiredBar['weakMap']>();
 expectTypeOf<RequiredDeep<FooBar['weakSet']>>().toEqualTypeOf<FooRequiredBar['weakSet']>();
 expectTypeOf<RequiredDeep<FooBar['promise']>>().toEqualTypeOf<FooRequiredBar['promise']>();
+
+// TODO: Fix this case: https://github.com/mmkal/expect-type/issues/34
+// @ts-expect-error
 expectTypeOf<RequiredDeep<FooBar['namespace']>>().toEqualTypeOf<FooRequiredBar['namespace']>();
+
 expectTypeOf<RequiredDeep<FooBar['undefined']>>().toBeNever();
 expectTypeOf<RequiredDeep<FooBar['null']>>().toEqualTypeOf<FooRequiredBar['null']>();
 

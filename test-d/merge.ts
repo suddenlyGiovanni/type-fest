@@ -1,4 +1,4 @@
-import {expectError, expectType} from 'tsd';
+import {expectType} from 'tsd';
 import type {Merge} from '../index';
 
 type Foo = {
@@ -50,12 +50,13 @@ expectType<{
 
 declare function setFooBar(fooBar: FooBar): void;
 
-expectError(setFooBar({
+// @ts-expect-error
+setFooBar({
 	[Symbol(42)]: 'life',
 	foo: 'foo',
 	bar: new Date(),
 	baz: true,
-}));
+});
 
 // Checks that a property can be replaced by another property that is not of the same type. This issue was encountered in `MergeDeep' with the default options.
 type FooDefaultOptions = {
@@ -100,8 +101,8 @@ expectType<{
 	c: undefined;
 	a?: string;
 	d?: string;
-	e?: number;
-	f?: number;
+	e: number | undefined;
+	f: number | undefined;
 	g: undefined;
 }>(fooBarWithOptionalKeys);
 
@@ -148,3 +149,19 @@ expectType<{
 	foo: true;
 	bar?: any;
 }>(sourceWithAny);
+
+// Test for issue https://github.com/sindresorhus/type-fest/issues/601
+type Baz = {
+	t1?: number;
+	t2?: number;
+	t3?: number;
+	t4?: number;
+};
+declare const baz: Merge<Pick<Baz, 't2' | 't4'>, {
+	list: string[];
+}>;
+expectType<{
+	t2?: number;
+	t4?: number;
+	list: string[];
+}>(baz);
