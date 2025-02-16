@@ -112,6 +112,21 @@ expectNotAssignable<JsonValue>(nonJsonWithToJSON);
 expectAssignable<JsonValue>(nonJsonWithToJSON.toJSON());
 expectAssignable<Jsonify<NonJsonWithToJSON>>(nonJsonWithToJSON.toJSON());
 
+class NonJsonExtendPrimitiveWithToJSON extends Number {
+	public fixture = BigInt('42');
+
+	public toJSON(): {fixture: string} {
+		return {
+			fixture: '42n',
+		};
+	}
+}
+
+const nonJsonExtendPrimitiveWithToJSON = new NonJsonExtendPrimitiveWithToJSON();
+expectNotAssignable<JsonValue>(nonJsonExtendPrimitiveWithToJSON);
+expectAssignable<JsonValue>(nonJsonExtendPrimitiveWithToJSON.toJSON());
+expectAssignable<Jsonify<NonJsonExtendPrimitiveWithToJSON>>(nonJsonExtendPrimitiveWithToJSON.toJSON());
+
 class NonJsonWithToJSONWrapper {
 	public inner: NonJsonWithToJSON = nonJsonWithToJSON;
 	public override = 42;
@@ -157,8 +172,8 @@ expectNotAssignable<JsonValue>(nonJsonWithInvalidToJSON.toJSON());
 declare const undefined: undefined;
 expectNotAssignable<JsonValue>(undefined);
 
-declare const fn: (_: any) => void;
-expectNotAssignable<JsonValue>(fn);
+declare const function_: (_: any) => void;
+expectNotAssignable<JsonValue>(function_);
 
 declare const symbol: symbol;
 expectNotAssignable<JsonValue>(symbol);
@@ -167,8 +182,8 @@ expectNotAssignable<JsonValue>(symbol);
 declare const plainUndefined: Jsonify<typeof undefined>;
 expectType<never>(plainUndefined);
 
-declare const plainFn: Jsonify<typeof fn>;
-expectType<never>(plainFn);
+declare const plainFunction: Jsonify<typeof function_>;
+expectType<never>(plainFunction);
 
 declare const plainSymbol: Jsonify<typeof symbol>;
 expectType<never>(plainSymbol);
@@ -177,8 +192,14 @@ expectType<never>(plainSymbol);
 declare const arrayMemberUndefined: Jsonify<Array<typeof undefined>>;
 expectType<null[]>(arrayMemberUndefined);
 
-declare const arrayMemberFn: Jsonify<Array<typeof fn>>;
-expectType<null[]>(arrayMemberFn);
+declare const arrayMemberUnionWithUndefined: Jsonify<Array<typeof undefined | typeof number>>;
+expectType<Array<null | number>>(arrayMemberUnionWithUndefined);
+
+declare const arrayMemberUnionWithUndefinedDeep: Jsonify<Array<Array<typeof undefined | typeof number>> | {foo: Array<typeof undefined | typeof number>}>;
+expectType<Array<Array<null | number>> | {foo: Array<null | number>}>(arrayMemberUnionWithUndefinedDeep);
+
+declare const arrayMemberFunction: Jsonify<Array<typeof function_>>;
+expectType<null[]>(arrayMemberFunction);
 
 declare const arrayMemberSymbol: Jsonify<Array<typeof symbol>>;
 expectType<null[]>(arrayMemberSymbol);
@@ -187,8 +208,8 @@ expectType<null[]>(arrayMemberSymbol);
 declare const objectValueUndefined: Jsonify<{keep: string; undefined: typeof undefined}>;
 expectType<{keep: string}>(objectValueUndefined);
 
-declare const objectValueFn: Jsonify<{keep: string; fn: typeof fn}>;
-expectType<{keep: string}>(objectValueFn);
+declare const objectValueFunction: Jsonify<{keep: string; fn: typeof function_}>;
+expectType<{keep: string}>(objectValueFunction);
 
 declare const objectValueSymbol: Jsonify<{keep: string; symbol: typeof symbol}>;
 expectType<{keep: string}>(objectValueSymbol);
@@ -221,6 +242,9 @@ expectType<[string, string]>(tupleJson);
 
 declare const tupleRestJson: Jsonify<[string, ...Date[]]>;
 expectType<[string, ...string[]]>(tupleRestJson);
+
+declare const mixTupleJson: Jsonify<['1', (_: any) => void, 2]>;
+expectType<['1', null, 2]>(mixTupleJson);
 
 declare const tupleStringJson: Jsonify<string[] & ['some value']>;
 expectType<['some value']>(tupleStringJson);
@@ -327,6 +351,21 @@ expectType<{a: any}>(objectWithAnyProperty);
 declare const objectWithAnyProperties: Jsonify<Record<string, any>>;
 expectType<Record<string, any>>(objectWithAnyProperties);
 
-/// #629
-// declare const readonlyTuple: Jsonify<readonly [1, 2, 3]>;
-// expectType<readonly [1, 2, 3]>(readonlyTuple);
+// Test for `Jsonify` support for nested objects with _only_ a name property.
+// See https://github.com/sindresorhus/type-fest/issues/657
+declare const nestedObjectWithNameProperty: {
+	first: {
+		name: string;
+	};
+};
+declare const jsonifiedNestedObjectWithNameProperty: Jsonify<
+	typeof nestedObjectWithNameProperty
+>;
+
+expectType<typeof nestedObjectWithNameProperty>(
+	jsonifiedNestedObjectWithNameProperty,
+);
+
+// Regression test for https://github.com/sindresorhus/type-fest/issues/629
+declare const readonlyTuple: Jsonify<readonly [1, 2, 3]>;
+expectType<[1, 2, 3]>(readonlyTuple);

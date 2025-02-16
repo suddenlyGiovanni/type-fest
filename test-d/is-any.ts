@@ -1,4 +1,4 @@
-import {expectError, expectType} from 'tsd';
+import {expectType} from 'tsd';
 import type {IsAny} from '../index';
 
 declare const anything: any;
@@ -16,4 +16,12 @@ expectType<IsAny<undefined>>(false);
 expectType<IsAny<void>>(false);
 
 // Missing generic parameter
-expectError<IsAny>(anything);
+// @ts-expect-error
+type A = IsAny;
+
+// Verify that are no circular reference issues
+// https://github.com/sindresorhus/type-fest/issues/846
+type OnlyAny<T extends IsAny<T> extends true ? any : never> = T;
+type B = OnlyAny<any>;
+// @ts-expect-error
+type C = OnlyAny<string>;

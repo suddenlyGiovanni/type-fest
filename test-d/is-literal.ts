@@ -1,10 +1,11 @@
-import {expectError, expectType} from 'tsd';
+import {expectType} from 'tsd';
 import type {
 	IsLiteral,
 	IsStringLiteral,
 	IsNumericLiteral,
 	IsBooleanLiteral,
 	IsSymbolLiteral,
+	Tagged,
 } from '../index';
 
 const stringLiteral = '';
@@ -43,6 +44,45 @@ expectType<IsLiteral<never>>(false);
 expectType<IsStringLiteral<typeof stringLiteral>>(true);
 expectType<IsStringLiteral<typeof _string>>(false);
 
+// Strings with infinite set of possible values return `false`
+expectType<IsStringLiteral<Uppercase<string>>>(false);
+expectType<IsStringLiteral<Lowercase<string>>>(false);
+expectType<IsStringLiteral<Capitalize<string>>>(false);
+expectType<IsStringLiteral<Uncapitalize<string>>>(false);
+expectType<IsStringLiteral<Capitalize<Lowercase<string>>>>(false);
+expectType<IsStringLiteral<Uncapitalize<Uppercase<string>>>>(false);
+expectType<IsStringLiteral<`abc${string}`>>(false);
+expectType<IsStringLiteral<`${string}abc`>>(false);
+expectType<IsStringLiteral<`${number}:${string}`>>(false);
+expectType<IsStringLiteral<`abc${Uppercase<string>}`>>(false);
+expectType<IsStringLiteral<`${Lowercase<string>}abc`>>(false);
+expectType<IsStringLiteral<`${number}`>>(false);
+expectType<IsStringLiteral<`${number}${string}`>>(false);
+expectType<IsStringLiteral<`${number}` | Uppercase<string>>>(false);
+expectType<IsStringLiteral<Capitalize<string> | Uppercase<string>>>(false);
+expectType<IsStringLiteral<`abc${string}` | `${string}abc`>>(false);
+
+// Strings with finite set of possible values return `true`
+expectType<IsStringLiteral<'a' | 'b'>>(true);
+expectType<IsStringLiteral<Uppercase<'a'>>>(true);
+expectType<IsStringLiteral<Lowercase<'a'>>>(true);
+expectType<IsStringLiteral<Uppercase<'a' | 'b'>>>(true);
+expectType<IsStringLiteral<Lowercase<'a' | 'b'>>>(true);
+expectType<IsStringLiteral<Capitalize<'abc' | 'xyz'>>>(true);
+expectType<IsStringLiteral<Uncapitalize<'Abc' | 'Xyz'>>>(true);
+expectType<IsStringLiteral<`ab${'c' | 'd' | 'e'}`>>(true);
+expectType<IsStringLiteral<Uppercase<'a' | 'b'> | 'C' | 'D'>>(true);
+expectType<IsStringLiteral<Lowercase<'xyz'> | Capitalize<'abc'>>>(true);
+
+// Strings with union of literals and non-literals return `boolean`
+expectType<IsStringLiteral<Uppercase<string> | 'abc'>>({} as boolean);
+expectType<IsStringLiteral<Lowercase<string> | 'Abc'>>({} as boolean);
+expectType<IsStringLiteral<null | '1' | '2' | '3'>>({} as boolean);
+
+// Boundary types
+expectType<IsStringLiteral<any>>(false);
+expectType<IsStringLiteral<never>>(false);
+
 expectType<IsNumericLiteral<typeof numberLiteral>>(true);
 expectType<IsNumericLiteral<typeof bigintLiteral>>(true);
 expectType<IsNumericLiteral<typeof _number>>(false);
@@ -54,11 +94,19 @@ expectType<IsBooleanLiteral<typeof _boolean>>(false);
 expectType<IsSymbolLiteral<typeof symbolLiteral>>(true);
 expectType<IsSymbolLiteral<typeof _symbol>>(false);
 
-declare const anything: any;
-
 // Missing generic parameter
-expectError<IsLiteral>(anything);
-expectError<IsStringLiteral>(anything);
-expectError<IsNumericLiteral>(anything);
-expectError<IsBooleanLiteral>(anything);
-expectError<IsSymbolLiteral>(anything);
+// @ts-expect-error
+type A0 = IsLiteral;
+// @ts-expect-error
+type A1 = IsStringLiteral;
+// @ts-expect-error
+type A2 = IsNumericLiteral;
+// @ts-expect-error
+type A3 = IsBooleanLiteral;
+// @ts-expect-error
+type A4 = IsSymbolLiteral;
+
+// Tagged types should be false
+expectType<IsStringLiteral<Tagged<string, 'Tag'>>>(false);
+expectType<IsNumericLiteral<Tagged<number, 'Tag'>>>(false);
+expectType<IsBooleanLiteral<Tagged<boolean, 'Tag'>>>(false);
